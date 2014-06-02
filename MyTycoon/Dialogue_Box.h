@@ -10,6 +10,7 @@ public:
 	label & getTitleText() {return titleText;};
 
 	int getFormat() {return format;};
+	int getActiveTextBoxIndex();
 
 	sf::RectangleShape & getBoxBackground() {return boxBackground;};
 
@@ -88,6 +89,15 @@ dialogueBox::dialogueBox(std::string titleString, int formatTemp):
 label & dialogueBox::getTextBoxes(unsigned int i)
 {
 	return textBoxes[i];
+}
+
+int dialogueBox::getActiveTextBoxIndex()
+{
+	for (unsigned int i = 0; i < format; i++)
+	{
+		if (textBoxes[i].getActive() == true)
+			return i;
+	}
 }
 
 std::string dialogueBox::getTextBoxString(unsigned int i)

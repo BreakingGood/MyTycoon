@@ -56,6 +56,7 @@ int main()
 	float calculatedCustomers = 0;
 	float calculatedSales = 0;
 	bool subtractOffset = true;
+	bool notOneHundred = false;
 	//STRINGSTREAM FOR CONVERSION
 	float labelTextAsFloat = 0;
 	float labelTextAsFloatTwo = 0;
@@ -76,7 +77,7 @@ int main()
 	testText.setString("HEREHEREHERE");
 	//DIALOGUE BOXES
 	dialogueBox dBoxPrice("UPDATE PRICE",1);
-	dialogueBox dBoxRecipe("      UPDATE RECIPE \n(MUST ADD UP TO 100)",6);
+	dialogueBox dBoxRecipe("UPDATE RECIPE",6);
 	dialogueBox dBoxItems("CHANGE ITEMS",0);
 
 //GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP----GAME LOOP
@@ -203,7 +204,9 @@ int main()
 				for (unsigned int i = 0; i < dBoxRecipe.getFormat(); i++)
 				{
 					if(dBoxRecipe.getTextBoxes(i).isHovering(window))	//if hovering over text box & mouse clicked
+					{
 						dBoxRecipe.setTextBoxActive(i);				//make that text box active and all other text boxes inactive	
+					}
 				}
 
 				unsigned int currentActive = 0;
@@ -222,6 +225,7 @@ int main()
 				if ((dBoxRecipe.getButtonOkay().isHovering(window) == true) && (hoveringFix == true))//if button okay pressed
 				{
 					int recipeTotalPercentage = 0;
+					int previouslyActive = dBoxRecipe.getActiveTextBoxIndex();
 					for (unsigned int i = 0; i < dBoxRecipe.getFormat(); i++)
 					{
 						dBoxRecipe.setTextBoxActive(i);	//make the textBox active
@@ -230,9 +234,10 @@ int main()
 						conversionTwo >> labelTextAsFloatTwo;
 						recipeTotalPercentage += labelTextAsFloatTwo;
 					}
+					dBoxRecipe.setTextBoxActive(previouslyActive);
 					if (recipeTotalPercentage != 100)
 					{
-						std::cout << "Not 100" << std::endl;
+						notOneHundred = true;
 					}
 					else
 					{
@@ -252,9 +257,8 @@ int main()
 						}
 
 						hoveringFix = false;
+						notOneHundred = false;
 					}
-
-					
 				}
 				else if (dBoxRecipe.getButtonCancel().isHovering(window) == true) //if button cancel pressed
 				{
@@ -267,6 +271,7 @@ int main()
 					currentState = SETUP;
 
 					hoveringFix = false;
+					notOneHundred = false;
 				}
 				hoveringFix = true;
 			}
@@ -312,6 +317,8 @@ int main()
 				}
 			}
 		}
+
+		
 //LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----LOGIC----
 		if (currentState == DAY_BEGUN)
 		{
@@ -414,7 +421,7 @@ int main()
 		
 
 //RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----RENDERING----
-
+		
 		window.clear();
 
 		if(currentState == START_SCREEN)
@@ -511,6 +518,8 @@ int main()
 				window.draw(dBoxRecipe.getTextBoxes(i).getLabelText());
 				window.draw(dBoxRecipe.getTextBoxDescription(i));
 			}
+			if (notOneHundred == true)
+				window.draw(game.getRectNotOneHundred().getLabelText());
 		}
 		else if (currentState == DIALOGUE_ITEMS)
 		{
@@ -525,7 +534,7 @@ int main()
 			{
 				window.draw(game.getItemChangeLabels(i).getBackground());
 				window.draw(game.getItemChangeLabels(i).getLabelText());
-			}
+			}	
 		}
 
 

@@ -46,6 +46,7 @@ public:
 	label & getRecipeInfo(unsigned int i);
 
 	label & getSpeedsBackground();
+	label & getRectNotOneHundred() {return rectNotOneHundred;};
 
 	label & getItemChangeLabels(unsigned int i);
 
@@ -95,6 +96,7 @@ private:
 	label rectPopularity;
 	label rectStartDay;
 	label rectSpeedsBackground;
+	label rectNotOneHundred;
 
 	sf::CircleShape speeds[2];
 	sf::CircleShape speedsTemplate;
@@ -425,6 +427,13 @@ void game::mainUiSetup()
 	rectChangeItems.setString("Change Items");
 	rectChangeItems.setTextColor(sf::Color::White);
 
+	rectNotOneHundred.setBackPosition(420,170);
+	rectNotOneHundred.setBackSize(100,100);
+	rectNotOneHundred.setFont(gameFont);
+	rectNotOneHundred.setString("The combined \n percentages must \n equal 100");
+	rectNotOneHundred.setTextColor(sf::Color::Red);
+	rectNotOneHundred.setCharacterSize(15);
+
 	updateGeneralInfo(); //clear and repopulate the generalInfo vector
 	//
 }
@@ -728,7 +737,7 @@ void game::adjustPopularity(player & player)
 	if((calculatePriceQuality() > 1.4) && (player.getPopularity() < 100)) //if quality of the user price is above 1.4
 	{																	//increase
 		player.setPopularity(player.getPopularity() + 1);
-		std::cout << player.getPopularity();
+		
 	}
 	else if ((calculatePriceQuality() < .6) && (player.getPopularity() > 0)) //if quality of price below .6
 	{																		//decrease
@@ -940,7 +949,7 @@ void game::setupItemChangeDialogue()
 		else
 			row++;
 
-		std::cout << row << std::endl;
+		
 		itemChangeLabels[i].setBackPosition(110 * column, (140 + row * 30)); //THIS STILL NEEDS TO BE ADJUSTED FOR PROPER SPACING OF ROWS
 		itemChangeLabels[i].setString(allItems[i].getName());				//IT WILL BE DONE LATER WHEN I HAVE MORE ITEMS MADE
 		itemChangeLabels[i].setFont(gameFont);								//SEE THE NOTE THAT STARTS WITH '400' FOR WHAT TO DO
