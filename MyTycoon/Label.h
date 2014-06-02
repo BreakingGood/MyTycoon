@@ -5,7 +5,7 @@ public:
 
 	//GETS
 
-	bool getActive() {return active;}; //Can we used for many purposes, particularly drawing at appropriate times
+	bool getActive() {return active;}; //Can be used for many purposes, particularly drawing at appropriate times
 
 	sf::RectangleShape & getBackground();
 	sf::Text & getLabelText();

@@ -16,17 +16,22 @@ public:
 	label & getTextBoxes(unsigned int i);
 
 	std::string getTextBoxString(unsigned int i);
+	std::string getActiveTextBoxString();
 
 	sf::Text getActiveTextBox();
+	sf::Text & getTextBoxDescription(unsigned int i);
 
 	//SETS
 	void setButtonOkayColor(sf::Color color);
 	void setButtonCancelColor(sf::Color color);
 	void setActiveTextBoxString(std::string string);
 	void updateFormat(int newFormat);
+	void setTextBoxColor(int textBoxIndex, sf::Color color);
+	void setTextBoxActive(int textBox);
 
 	//OTHER
 	void buttonNotHovering(sf::Color color);
+	void setupTextBoxDescription(unsigned int index, std::string description);
 
 private:
 
@@ -44,12 +49,18 @@ private:
 	label titleText;
 	label textBoxTemplate;
 
+	sf::Text descriptionText;
+
 	std::string title;
 
 	std::vector<label> textBoxes;
+	std::vector<sf::Text> textBoxDescription;
 
 	//OTHER
 	void configure();
+	void originalFormat();
+	
+	
 };
 
 //CONSTRUCTOR
@@ -66,52 +77,11 @@ dialogueBox::dialogueBox(std::string titleString, int formatTemp):
 	for(unsigned int i = 0; i < format; i++)
 	{
 		textBoxes.push_back(textBoxTemplate);
+		textBoxDescription.push_back(descriptionText);
 	}
 
-	switch (format) //produce text boxes depending on the format of the dialogueBox
-	{
-	case 1:
-		textBoxes[0].setBackPosition(245,225);
-		textBoxes[0].setActive(true);
-		break;
-	case 2:
-		textBoxes[0].setBackPosition(245,185);
-		textBoxes[0].setActive(true);
-		textBoxes[1].setBackPosition(245,225);
-		break;
-	case 3:
-		textBoxes[0].setBackPosition(245,185);
-		textBoxes[0].setActive(true);
-		textBoxes[1].setBackPosition(245,220);
-		textBoxes[2].setBackPosition(245,255);
-		break;
-	case 4:
-		textBoxes[0].setBackPosition(245,175);
-		textBoxes[0].setActive(true);
-		textBoxes[1].setBackPosition(245,205);
-		textBoxes[2].setBackPosition(245,235);
-		textBoxes[3].setBackPosition(245,265);
-		break;
-	case 5:
-		textBoxes[0].setBackPosition(245,155);
-		textBoxes[0].setActive(true);
-		textBoxes[1].setBackPosition(245,185);
-		textBoxes[2].setBackPosition(245,215);
-		textBoxes[3].setBackPosition(245,245);
-		textBoxes[4].setBackPosition(245,275);
-		break;
-	case 6:
-		textBoxes[0].setBackPosition(245,145);
-		textBoxes[0].setActive(true);
-		textBoxes[1].setBackPosition(245,175);
-		textBoxes[2].setBackPosition(245,205);
-		textBoxes[3].setBackPosition(245,235);
-		textBoxes[4].setBackPosition(245,265);
-		textBoxes[5].setBackPosition(245,295);
-		break;
-	default:
-		break;
-	}
+	originalFormat(); //configure text boxes for first time
+
 }
 
 
@@ -125,6 +95,18 @@ std::string dialogueBox::getTextBoxString(unsigned int i)
 	return textBoxes[i].getLabelText().getString().toAnsiString();
 }
 
+std::string dialogueBox::getActiveTextBoxString()
+{
+	for (unsigned int i = 0; i < format; i++)
+	{
+		if (textBoxes[i].getActive() == true)
+		{
+			return textBoxes[i].getLabelText().getString().toAnsiString();
+		}
+	}
+	
+}
+
 sf::Text dialogueBox::getActiveTextBox()
 {
 	for (unsigned int i = 0; i < textBoxes.size(); i++)
@@ -134,6 +116,11 @@ sf::Text dialogueBox::getActiveTextBox()
 			return textBoxes[i].getLabelText();
 		}
 	}
+}
+
+sf::Text & dialogueBox::getTextBoxDescription(unsigned int i)
+{
+	return textBoxDescription[i];
 }
 
 void dialogueBox::setButtonOkayColor(sf::Color color)
@@ -160,10 +147,14 @@ void dialogueBox::setActiveTextBoxString(std::string string)
 void dialogueBox::updateFormat(int newFormat)
 {
 	format = newFormat;
+
 	textBoxes.clear();
+	textBoxDescription.clear();
+
 	for(unsigned int i = 0; i < format; i++)
 	{
 		textBoxes.push_back(textBoxTemplate);
+		textBoxDescription.push_back(descriptionText);
 	}
 
 	switch (format)
@@ -212,10 +203,34 @@ void dialogueBox::updateFormat(int newFormat)
 	}
 }
 
+void dialogueBox::setTextBoxColor(int textBoxIndex, sf::Color color)
+{
+	textBoxes[textBoxIndex].getBackground().setFillColor(color);
+}
+
+void dialogueBox::setTextBoxActive(int textBox)
+{
+	for(unsigned int i = 0; i < format; i++)
+	{
+		if (i == textBox)
+			textBoxes[textBox].setActive(true);
+		else
+			textBoxes[i].setActive(false);
+	}
+	
+}
+
 void dialogueBox::buttonNotHovering(sf::Color color)
 {
 	buttonOkay.setBackColor(color);
 	buttonCancel.setBackColor(color);
+}
+
+void dialogueBox::setupTextBoxDescription(unsigned int index, std::string description)
+{
+	textBoxDescription[index].setString(description);
+	textBoxDescription[index].setPosition(textBoxes[index].getBackground().getPosition().x - (textBoxDescription[index].getGlobalBounds().width + 10), 
+										  textBoxes[index].getBackground().getPosition().y);	
 }
 
 void dialogueBox::configure()
@@ -259,6 +274,58 @@ void dialogueBox::configure()
 	textBoxTemplate.setTextColor(sf::Color::Black);
 	textBoxTemplate.setCharacterSize(16);
 	textBoxTemplate.setFont(gameFont);
+
+	descriptionText.setColor(sf::Color::White);
+	descriptionText.setCharacterSize(14);
+	descriptionText.setFont(gameFont);
+}
+
+void dialogueBox::originalFormat()
+{
+	switch (format) //produce text boxes depending on the format of the dialogueBox
+	{
+	case 1:
+		textBoxes[0].setBackPosition(245,225);
+		textBoxes[0].setActive(true);
+		break;
+	case 2:
+		textBoxes[0].setBackPosition(245,185);
+		textBoxes[0].setActive(true);
+		textBoxes[1].setBackPosition(245,225);
+		break;
+	case 3:
+		textBoxes[0].setBackPosition(245,185);
+		textBoxes[0].setActive(true);
+		textBoxes[1].setBackPosition(245,220);
+		textBoxes[2].setBackPosition(245,255);
+		break;
+	case 4:
+		textBoxes[0].setBackPosition(245,175);
+		textBoxes[0].setActive(true);
+		textBoxes[1].setBackPosition(245,205);
+		textBoxes[2].setBackPosition(245,235);
+		textBoxes[3].setBackPosition(245,265);
+		break;
+	case 5:
+		textBoxes[0].setBackPosition(245,155);
+		textBoxes[0].setActive(true);
+		textBoxes[1].setBackPosition(245,185);
+		textBoxes[2].setBackPosition(245,215);
+		textBoxes[3].setBackPosition(245,245);
+		textBoxes[4].setBackPosition(245,275);
+		break;
+	case 6:
+		textBoxes[0].setBackPosition(245,145);
+		textBoxes[0].setActive(true);
+		textBoxes[1].setBackPosition(245,175);
+		textBoxes[2].setBackPosition(245,205);
+		textBoxes[3].setBackPosition(245,235);
+		textBoxes[4].setBackPosition(245,265);
+		textBoxes[5].setBackPosition(245,295);
+		break;
+	default:
+		break;
+	}
 }
 
 

@@ -13,14 +13,20 @@ public:
 	sf::Text getStartScreenText();
 	sf::Text & getStatScreen(unsigned int i);
 
-	item getActiveItem();
+	item & getActiveItem();
 
 	float calculateTotalCustomers(player & player);
 	float calculatePayingCustomers(player & player);
 
+	int getGameSpeed() {return speedInMilliseconds;};
+
+	unsigned int getNumberOfItems() {return allItems.size();};
+	unsigned int getActiveItemLabel();
+
 	label & getRectStartDay() {return rectStartDay;};
 	label & getRectChangePrice() {return rectChangePrice;};
 	label & getRectChangeRecipe() {return rectChangeRecipe;};
+	label & getRectChangeItems() {return rectChangeItems;};
 
 	label & getRectGroupGeneralInfo() {return rectGroupGeneralInfo;};
 	label & getRectTotalMoney() {return rectTotalMoney;};
@@ -39,12 +45,18 @@ public:
 
 	label & getRecipeInfo(unsigned int i);
 
+	label & getSpeedsBackground();
+
+	label & getItemChangeLabels(unsigned int i);
+
+	sf::CircleShape & getCircleSpeeds(unsigned int i);
+
 	//SETS
 	void updateName(std::string string);
-	void updatePrice(float price);
-	//update recipe
+	void updatePrice(float price, std::string itemUnit);
+	void updateRecipe();
 	void updateQuality(float quality);
-	//set active item
+	void setActiveItemPrice(float price);
 	void updateCustomers(unsigned int customers);
 	void updateSales(unsigned int sales);
 	void updateProfit(float profit);
@@ -54,6 +66,10 @@ public:
 	void updateUiLabels(player & player, float totalCost, float sales, float totalProfit, sf::Time & secondsRemaining);
 	void updateStatScreen(player & player);
 	void adjustPopularity(player & player);
+	void increaseSpeed();
+
+	void setActiveItem(unsigned int j);
+	void updateItemChanges();
 
 	//OTHER
 	void mainUiSetup();
@@ -64,12 +80,13 @@ private:
 	//MEMBERS
 	label rectChangePrice;
 	label rectChangeRecipe;
+	label rectChangeItems;
 	label rectGroupItemInfo;
 	label rectName;
 	label rectPrice;
 	label rectQuality;
-	label rectGroupSalesInfo;
-	label rectCustomers;
+	label rectGroupSalesInfo;	//THESE ARE ALL LABELS BECAUSE
+	label rectCustomers;		//I NEED ACCESS TO THE isHovering() FUNCTION
 	label rectSales;
 	label rectProfit;
 	label rectGroupGeneralInfo;
@@ -77,7 +94,13 @@ private:
 	label rectTimeLeft;
 	label rectPopularity;
 	label rectStartDay;
+	label rectSpeedsBackground;
 
+	sf::CircleShape speeds[2];
+	sf::CircleShape speedsTemplate;
+
+	
+	std::vector<label> itemChangeLabels;
 	std::vector<label> itemInfo;
 	std::vector<label> salesInfo;
 	std::vector<label> generalInfo;
@@ -93,13 +116,17 @@ private:
 	sf::Color darkGrey;
 	sf::Color pink;
 	sf::Color darkBlue;
+	sf::Color brownRed;
 
 	item trashNBurn;
 	item flashFlood;
-	
+	item floob;
+
 	std::string tempString;
 	std::ostringstream ss;
 	int seconds;
+	int gameSpeed;
+	int speedInMilliseconds; //Interval timer, 1000 mil = 1 sec
 
 	//GETS
 	float calculateQuality();
@@ -120,23 +147,33 @@ private:
 	//OTHER
 	void configureTrashNBurn();
 	void configureFlashFlood();
+	void configureFloob();
+
+	void setupItemChangeDialogue();
 
 	/*Process of adding new item:
 	Create new items object "item"
 	Make a configureItem function
+	Add the item to the game() constructor
 	Call the configureItem function in the constructor
 	Add the item to the allItems vector
 	*/
 };
 
 game::game()
-	:gameFont(), startText(), grey(155,155,155), darkGrey(106,106,106), pink(247,81,142),
-	trashNBurn(2), flashFlood(3), darkBlue(43,131,108)
+	:gameFont(), startText(), grey(155,155,155), darkGrey(106,106,106), pink(247,81,142), brownRed(138,41,8),
+	darkBlue(43,131,108), gameSpeed(0), speedInMilliseconds(500), tempString(), ss(), seconds(), 
+	rectChangePrice(), rectChangeRecipe(), rectChangeItems(), rectGroupItemInfo(), rectName(), rectPrice(),
+	rectQuality(), rectGroupSalesInfo(), rectCustomers(), rectSales(), rectProfit(), rectGroupGeneralInfo(),
+	rectTotalMoney(), rectTimeLeft(), rectPopularity(), rectStartDay(), rectSpeedsBackground(), speeds(), speedsTemplate(),
+	itemChangeLabels(), itemInfo(), salesInfo(), generalInfo(), recipeInfo(), allItems(), statList(), 
+	trashNBurn(2), flashFlood(3), floob(6) //items
+
 {
 	gameFont.loadFromFile("Assets/OpenSans-Regular.ttf");
 	
 	sf::Text text;
-	for (unsigned int i = 0; i < 8; i++)
+	for (unsigned int i = 0; i < 8; i++) //8 because there are 8 stats
 	{
 		statList.push_back(text);
 		statList[i].setFont(gameFont);
@@ -145,15 +182,33 @@ game::game()
 		statList[i].setPosition(230.f, ((i * 50) + 75));
 	}
 
+	speedsTemplate.setFillColor(sf::Color::White);
+	speedsTemplate.setRadius(10);
+	speedsTemplate.setPointCount(3);
+	speedsTemplate.setRotation(90);
+
+	rectSpeedsBackground.setBackColor(grey);
+	rectSpeedsBackground.setBackPosition(407,5);
+	rectSpeedsBackground.setBackSize(65,30);
+
+	for (unsigned int i = 0; i < 3; i++) //3 because there are 3 speeds
+	{
+		speeds[i] = speedsTemplate;
+		speeds[i].setPosition((i * 18) + 430, 10);
+	}
+	speeds[0].setFillColor(sf::Color::Yellow);
+
 	configureTrashNBurn();
 	configureFlashFlood();
+	configureFloob();
 
 	allItems.push_back(trashNBurn);
 	allItems.push_back(flashFlood);
+	allItems.push_back(floob);
+
+	setupItemChangeDialogue();
 
 	updateRecipeInfo();
-
-	
 	
 }
 
@@ -204,6 +259,21 @@ void game::updateStatScreen(player & player)
 sf::Text & game::getStatScreen(unsigned int i)
 {
 	return statList[i];
+}
+
+label & game::getItemChangeLabels(unsigned int i)
+{
+	return itemChangeLabels[i];
+}
+
+sf::CircleShape & game::getCircleSpeeds(unsigned int i)
+{
+	return speeds[i];
+}
+
+label & game::getSpeedsBackground()
+{
+	 return rectSpeedsBackground;
 }
 
 void game::mainUiSetup()
@@ -329,7 +399,7 @@ void game::mainUiSetup()
 	rectGroupGeneralInfo.setTextColor(sf::Color::White);
 	//
 	rectChangePrice.setBackColor(pink);
-	rectChangePrice.setBackPosition(55,410);
+	rectChangePrice.setBackPosition(20,410);
 	rectChangePrice.setBackSize(140, 50);
 
 	rectChangePrice.setFont(gameFont);
@@ -338,7 +408,7 @@ void game::mainUiSetup()
 	rectChangePrice.setTextColor(sf::Color::White);
 	//
 	rectChangeRecipe.setBackColor(pink);
-	rectChangeRecipe.setBackPosition(55,340);
+	rectChangeRecipe.setBackPosition(20,340);
 	rectChangeRecipe.setBackSize(140, 50);
 
 	rectChangeRecipe.setFont(gameFont);
@@ -346,6 +416,15 @@ void game::mainUiSetup()
 	rectChangeRecipe.setString("Change Recipe");
 	rectChangeRecipe.setTextColor(sf::Color::White);
 	//
+	rectChangeItems.setBackColor(pink);
+	rectChangeItems.setBackPosition(20, 270);
+	rectChangeItems.setBackSize(140,50);
+
+	rectChangeItems.setFont(gameFont);
+	rectChangeItems.setCharacterSize(20);
+	rectChangeItems.setString("Change Items");
+	rectChangeItems.setTextColor(sf::Color::White);
+
 	updateGeneralInfo(); //clear and repopulate the generalInfo vector
 	//
 }
@@ -411,14 +490,32 @@ void game::updateName(std::string string)
 	updateItemInfo();
 }
 
-void game::updatePrice(float price)
+void game::updatePrice(float price, std::string itemUnit)
 {
 	std::string tempString;
 	std::ostringstream ss;
 	ss << price;
-	tempString = "$" + ss.str() + "/Ounce";
+	tempString = "$" + ss.str() + "/" + itemUnit;
 	rectPrice.setString(tempString);
 	updateItemInfo();
+}
+
+void game::updateRecipe()
+{
+	std::ostringstream ss;
+
+	for(unsigned int i = 0; i < allItems.size(); i++)
+	{
+		if (allItems[i].getActive() == true)
+		{
+			for (int j = 0; j < allItems[i].getNumberOfIngredients(); j++) //for all ingredients in the active item
+			{
+				ss << allItems[i].getUserRecipe(j); //get user percentage of the recipe 
+				recipeInfo[j].setString(ss.str() + "%" + " " + allItems[i].getRecipeIngredients(j)); //use it to compose a label 
+				ss.str("");																			//percentage + % + item name
+			}
+		}
+	}
 }
 
 void game::updateQuality(float quality)
@@ -429,6 +526,17 @@ void game::updateQuality(float quality)
 	tempString = ss.str() + "% Quality";
 	rectQuality.setString(tempString);
 	updateItemInfo();
+}
+
+void game::setActiveItemPrice(float price)
+{
+	for(unsigned int i = 0; i < allItems.size(); i++)
+	{
+		if (allItems[i].getActive() == true)
+		{
+			allItems[i].setUserPrice(price);
+		}
+	}
 }
 
 void game::updateCustomers(unsigned int customers)
@@ -633,6 +741,73 @@ void game::adjustPopularity(player & player)
 	}
 }
 
+void game::increaseSpeed()
+{
+	gameSpeed++;
+
+	if(gameSpeed == 3)
+	{
+		gameSpeed = 0;
+
+		speeds[0].setFillColor(sf::Color::Yellow);
+		speeds[1].setFillColor(sf::Color::White);
+		speeds[2].setFillColor(sf::Color::White);
+
+		speedInMilliseconds = 500;
+	}
+	else
+	{
+		speeds[gameSpeed].setFillColor(sf::Color::Yellow);
+		switch (gameSpeed)
+		{
+		case 1:
+			speedInMilliseconds = 300;
+			break;
+		case 2:
+			speedInMilliseconds = 200;
+			break;
+		}
+	}
+}
+
+void game::setActiveItem(unsigned int j)
+{
+	for (unsigned int i = 0; i < getNumberOfItems(); i++)
+	{
+		allItems[i].setActive(false); //make every item inactive
+	}
+
+	allItems[j].setActive(true); //make the proper item active
+
+	updateItemInfo();
+}
+
+void game::updateItemChanges()
+{
+
+	for(unsigned int i = 0; i < allItems.size(); i++)
+	{
+		if (allItems[i].getActive() == true)
+		{
+			tempString = allItems[i].getName(); //get name of active item
+			rectName.setString(tempString); //set the label string to said name
+
+			ss << allItems[i].getUserPrice(); //push the user price to a stringstream
+			tempString = "$" + ss.str() + "/" + allItems[i].getMeasuringUnit(); //use the stringstream to compose a string
+			ss.str(""); //clear the stringstream
+			rectPrice.setString(tempString); //set the label text as the composed string
+
+			ss << calculateQuality();
+			tempString = ss.str() + "% quality"; //60% Quality
+			ss.str("");
+			rectQuality.setString(tempString);
+		}
+	}
+
+	updateRecipeInfo();
+
+}
+
 float game::calculateTotalCustomers(player & player)
 {
 	float total = 0;
@@ -644,6 +819,18 @@ float game::calculateTotalCustomers(player & player)
 		}	//(locationExposure * desirability) + (locationExposure * popularity) + 25
 	}
 	return total;
+}
+
+unsigned int game::getActiveItemLabel()
+{
+	unsigned int activeLabel;
+	for (unsigned int i = 0; i < getNumberOfItems(); i++)
+	{
+		if (itemChangeLabels[i].getActive())
+			activeLabel = i;
+	}
+
+	return activeLabel;
 }
 
 float game::calculatePayingCustomers(player & player)
@@ -658,6 +845,16 @@ float game::calculatePayingCustomers(player & player)
 	{
 		payingCustomers = totalCustomers;
 	}
+
+	//The code below adjusts the customers based on popularity
+	if(player.getPopularity() - 50 <= 0)
+		payingCustomers = (((((player.getPopularity() - 50) / 5) / 100) + 1) * payingCustomers);//50 is the popularity cutoff, above 50 = more sales, below = less 
+	else																						//5 is the increment. For every 5 percent below/above 50, adjust the sales
+		payingCustomers = (((((player.getPopularity() - 50) / 5) / 100) - 1) * payingCustomers);//100 is what it is divided by to make it a percentage
+
+	if (payingCustomers > totalCustomers)//Make sure there is not more sales than customers
+		payingCustomers = totalCustomers;
+
 	return std::ceil(payingCustomers);
 }
 
@@ -696,7 +893,63 @@ void game::configureFlashFlood()
 	flashFlood.setDesirability(10);
 }
 
-item game::getActiveItem()
+void game::configureFloob()
+{
+	floob.setName("FLOOB");
+	floob.setUserPrice(250); //250
+	floob.setDefaultPrice(250); //250
+	floob.setMeasuringUnit("fl oz");
+	floob.setUserRecipe(0,33); //33
+	floob.setUserRecipe(1,33); //33
+	floob.setUserRecipe(2,34); //34
+	floob.setUserRecipe(3,34);
+	floob.setUserRecipe(4,34);
+	floob.setUserRecipe(5,34);
+	floob.setIdealRecipe(0,10); //10
+	floob.setIdealRecipe(1,30); //30
+	floob.setIdealRecipe(2,60); //60
+	floob.setIdealRecipe(3,60);
+	floob.setIdealRecipe(4,60);
+	floob.setIdealRecipe(5,60);
+	floob.setRecipeIngredients(0,"Magnesium Powder");
+	floob.setRecipeIngredients(1,"Steel Shavings");
+	floob.setRecipeIngredients(2,"Glacial Spring Water");
+	floob.setRecipeIngredients(3,"Fat People");
+	floob.setRecipeIngredients(4,"School is cool");
+	floob.setRecipeIngredients(5,"C++ ftw");
+	floob.setActive(false);
+	floob.setDesirability(1674);
+}
+
+void game::setupItemChangeDialogue()
+{
+	label tempLabel;
+	int row = 0;
+	int column = 1;
+	for (unsigned int i = 0; i < allItems.size(); i++)
+	{
+		itemChangeLabels.push_back(tempLabel);
+		itemChangeLabels[i].setBackColor(brownRed);
+		itemChangeLabels[i].setTextColor(sf::Color::White);
+		itemChangeLabels[i].setBackSize(100,25);
+		if ((i != 0) && (itemChangeLabels[i-1].getBackground().getPosition().y > 400)) //400 is the cutoff that determines how low the labels go
+		{
+				column++;			//if i isn't 0 (so it doesn't crash testing i-1)
+				row = 1;			//and the previous label is at maximum range
+		}							//make the next label in the next column at the first row
+		else
+			row++;
+
+		std::cout << row << std::endl;
+		itemChangeLabels[i].setBackPosition(110 * column, (140 + row * 30)); //THIS STILL NEEDS TO BE ADJUSTED FOR PROPER SPACING OF ROWS
+		itemChangeLabels[i].setString(allItems[i].getName());				//IT WILL BE DONE LATER WHEN I HAVE MORE ITEMS MADE
+		itemChangeLabels[i].setFont(gameFont);								//SEE THE NOTE THAT STARTS WITH '400' FOR WHAT TO DO
+		itemChangeLabels[i].setCharacterSize(12);
+	}
+	
+}
+
+item & game::getActiveItem()
 {
 	for(unsigned int i = 0; i < allItems.size(); i++)
 	{
